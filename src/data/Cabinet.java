@@ -123,25 +123,65 @@ public class Cabinet {
         return -1;
     }
 
-    public void deflagmentation() {
+    public void defragmentation() {
         files.refreshFiles();
         pool.refreshPool();
         int currSector = 0;
-        for (FilesNodeInfo file : files.getFiles()) {
-            int totalSector = file.getNumberOfSector();
-            for (int i = 0; i < totalSector; i++) {
+        for (int i = 0; i < files.getFiles().size(); i++) {
+            int totalSector = files.getFiles().get(i).getNumberOfSector();
+            for (int j = 0; j < totalSector; j++) {
                 int indexFileInSector = getIndexFileInSector(currSector);
                 if (indexFileInSector == -1) {
-                    swapSectorOfFileToEmptySector(file, currSector);
-                    currSector++;
+                    swapSectorOfFileToEmptySector(files.getFiles().get(i), currSector);
+                } else {
+                    if (indexFileInSector != i) {
+                        swapSectorToSector(files.getFiles().get(i), currSector, files.getFiles().get(indexFileInSector));
+                    }
                 }
+                currSector++;
             }
         }
+        System.out.println("Deragmented is successfully.");
+    }
+
+    private void swapSectorToSector(FilesNodeInfo currFile, int sector, FilesNodeInfo diffFile) {
+        //add new sector into currFile
+        currFile.getListOfSector().add(new PoolNodeInfo(sector, sector));
+
+        //remove this sector from diffFile
+        if (diffFile.getListOfSector().get(0).getStartedIndex() == diffFile.getListOfSector().get(0).getEndedIndex()) {
+            diffFile.getListOfSector().remove(0);
+        } else {
+            diffFile.getListOfSector().get(0).setStartedIndex(sector + 1);
+        }
+
+        for (PoolNodeInfo poolNodeInfo : currFile.getListOfSector()) {
+            if (poolNodeInfo.getStartedIndex() > sector) {
+                if (poolNodeInfo.getStartedIndex() == poolNodeInfo.getEndedIndex()) {
+                    // swap on disk
+                    disk.changeDiskWithOtherSector(poolNodeInfo.getStartedIndex(), sector);
+                    // swap on sector from currFile to diffFile
+                    diffFile.getListOfSector().add(new PoolNodeInfo(poolNodeInfo.getStartedIndex(), poolNodeInfo.getStartedIndex()));
+                    currFile.getListOfSector().remove(poolNodeInfo);
+                } else {
+                    // swap on disk
+                    disk.changeDiskWithOtherSector(poolNodeInfo.getStartedIndex(), sector);
+
+                    diffFile.getListOfSector().add(new PoolNodeInfo(poolNodeInfo.getStartedIndex(), poolNodeInfo.getStartedIndex()));
+                    // swap on sector from currFile to diffFile
+                    poolNodeInfo.setStartedIndex(poolNodeInfo.getStartedIndex() + 1);
+                }
+                break;
+            }
+        }
+        files.refreshFiles();
+        pool.refreshPool();
     }
 
     private void swapSectorOfFileToEmptySector(FilesNodeInfo currFile, int sector) {
-        currFile.getListOfSector().add(sector, new PoolNodeInfo(sector, sector));
-        // set pool
+        // add new sector into File
+        currFile.getListOfSector().add(new PoolNodeInfo(sector, sector));
+        // remove a pool empty
         if (pool.getPool().get(0).getStartedIndex() != pool.getPool().get(0).getEndedIndex()) {
             pool.getPool().get(0).setStartedIndex(sector + 1);
         } else {
@@ -151,14 +191,14 @@ public class Cabinet {
             if (poolNodeInfo.getStartedIndex() > sector) {
                 if (poolNodeInfo.getStartedIndex() == poolNodeInfo.getEndedIndex()) {
                     // swap on disk
-                    disk.changeDisk(poolNodeInfo.getStartedIndex(), sector);
+                    disk.changeDiskWithEmptySector(poolNodeInfo.getStartedIndex(), sector);
                     // set pool
                     pool.getPool().add(new PoolNodeInfo(poolNodeInfo.getStartedIndex(), poolNodeInfo.getStartedIndex()));
                     // swap on sector of file
                     currFile.getListOfSector().remove(poolNodeInfo);
                 } else {
                     // swap on disk
-                    disk.changeDisk(poolNodeInfo.getStartedIndex(), sector);
+                    disk.changeDiskWithEmptySector(poolNodeInfo.getStartedIndex(), sector);
                     // set pool
                     pool.getPool().add(new PoolNodeInfo(poolNodeInfo.getStartedIndex(), poolNodeInfo.getStartedIndex()));
                     // swap on sector of file

@@ -37,7 +37,7 @@ public class Main {
                     cage.deleteFile();
                     break;
                 case 3:
-                    cage.deflagmentation();
+                    cage.defragmentation();
                     break;
                 case 4:
                     System.out.println("========== FILE MANAGER ==========");

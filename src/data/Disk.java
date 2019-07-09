@@ -43,10 +43,20 @@ public class Disk {
         }
     }
     
-    public void changeDisk(int fromSector, int toSector) {
+    public void changeDiskWithEmptySector (int fromSector, int toSector) {
         int characterInSector = toSector * 4;
         for (int i = fromSector * 4; i < (fromSector + 1) * 4; i++) {
+            disk[i] = disk[characterInSector];
+            characterInSector++;
+        }
+    }
+    
+    public void changeDiskWithOtherSector(int fromSector, int toSector) {
+        int characterInSector = toSector * 4;
+        for (int i = fromSector * 4; i < (fromSector + 1) * 4; i++) {
+            char temp = disk[characterInSector];
             disk[characterInSector] = disk[i];
+            disk[i] = temp;
             characterInSector++;
         }
     }
