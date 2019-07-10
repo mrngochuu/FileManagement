@@ -46,7 +46,7 @@ public class Disk {
     public void changeDiskWithEmptySector (int fromSector, int toSector) {
         int characterInSector = toSector * 4;
         for (int i = fromSector * 4; i < (fromSector + 1) * 4; i++) {
-            disk[i] = disk[characterInSector];
+            disk[characterInSector] = disk[i];
             characterInSector++;
         }
     }

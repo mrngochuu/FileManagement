@@ -25,23 +25,31 @@ public class Cabinet {
         String name, characters;
         int numOfCharacter, indexOfFile;
         FilesNodeInfo currFile;
-
+        
+        // check if the pool has no sector
         if (pool.getNumberOfSectorOfFirstPoolNode() == 0) {
             System.out.println("There is no more sector to store.");
             return;
         }
-
+        
+        //check if the file exists
         do {
-            name = MyToys.getString("Input file name: ", "File name is required.");
+            name = MyToys.getString("Input file name to save: ", "File name is required.");
             indexOfFile = getIndexOfFile(name);
             if (indexOfFile != -1) {
-                System.out.println("File exist.");
+                System.out.println("File already exists.");
             }
         } while (indexOfFile != -1);
 
         characters = MyToys.getString("Input characters: ", "Characters of file is required.");
 
         currFile = new FilesNodeInfo(name, characters);
+        
+        //Check if the pool has enough sectors to save the file
+        if(currFile.getNumberOfSector() > pool.getNumberOfSectorOfFirstPoolNode()) {
+            System.out.println("The pool has not enough sectors to save file");
+            return;
+        }
         files.getFiles().add(currFile);
 
         addNewPoolIntoFile(currFile, currFile.getNumberOfSector(), 0);
@@ -49,6 +57,7 @@ public class Cabinet {
         files.refreshFiles();
         pool.refreshPool();
         System.out.println("Added files is succesful.");
+        currFile.showFileInfo();
     }
 
     public void deleteFile() {
@@ -58,7 +67,7 @@ public class Cabinet {
         }
 
         String name;
-        name = MyToys.getString("Input file name: ", "File name is required.");
+        name = MyToys.getString("Input file name to delete: ", "File name is required.");
         int pos = getIndexOfFile(name);
         if (pos == -1) {
             System.out.println("File does not exist.");
@@ -98,9 +107,11 @@ public class Cabinet {
         int sectorOfFirstPool = pool.getNumberOfSectorOfFirstPoolNode();
 
         if (numOfSector < sectorOfFirstPool) {
+            //add sectors that save file into listOfFile
             fileInfo.addNewPool(new PoolNodeInfo(pool.getPool().get(0).getStartedIndex(), pool.getPool().get(0).getStartedIndex() + numOfSector - 1));
-            //disk
+            //add characters into disk
             disk.addIntoDisk(fileInfo.getCharacters(), pool.getPool().get(0).getStartedIndex(), pool.getPool().get(0).getStartedIndex() + numOfSector, indexChar);
+            //delete sectors that save file from pool
             pool.getPool().getFirst().setStartedIndex(pool.getPool().get(0).getStartedIndex() + numOfSector);
         } else if (numOfSector == sectorOfFirstPool) {
             fileInfo.addNewPool(pool.getPool().get(0));
@@ -110,6 +121,7 @@ public class Cabinet {
             fileInfo.addNewPool(pool.getPool().get(0));
             disk.addIntoDisk(fileInfo.getCharacters(), pool.getPool().get(0).getStartedIndex(), pool.getPool().get(0).getEndedIndex() + 1, indexChar);
             pool.getPool().remove(0);
+            //Use recursion to continue saving files
             addNewPoolIntoFile(fileInfo, numOfSector - sectorOfFirstPool, sectorOfFirstPool * 4);
         }
     }
@@ -124,24 +136,31 @@ public class Cabinet {
     }
 
     public void defragmentation() {
+        //refresh
         files.refreshFiles();
         pool.refreshPool();
+        
         int currSector = 0;
         for (int i = 0; i < files.getFiles().size(); i++) {
+            // compute the total sector of file to use
             int totalSector = files.getFiles().get(i).getNumberOfSector();
+            // use currSector to change the sector of files
             for (int j = 0; j < totalSector; j++) {
+                //check currSector of which file
                 int indexFileInSector = getIndexFileInSector(currSector);
-                if (indexFileInSector == -1) {
+                if (indexFileInSector == -1) { // currSector is empty
                     swapSectorOfFileToEmptySector(files.getFiles().get(i), currSector);
-                } else {
-                    if (indexFileInSector != i) {
+                } else { // currSector is not empty
+                    if (indexFileInSector != i) { //if there are 2 different files, change the sector
                         swapSectorToSector(files.getFiles().get(i), currSector, files.getFiles().get(indexFileInSector));
                     }
+                    //if they are the same file, do not thing
                 }
                 currSector++;
             }
         }
         System.out.println("Deragmented is successfully.");
+        showDisk();
     }
 
     private void swapSectorToSector(FilesNodeInfo currFile, int sector, FilesNodeInfo diffFile) {
@@ -154,7 +173,7 @@ public class Cabinet {
         } else {
             diffFile.getListOfSector().get(0).setStartedIndex(sector + 1);
         }
-
+        int sectorToChange = -1;
         for (PoolNodeInfo poolNodeInfo : currFile.getListOfSector()) {
             if (poolNodeInfo.getStartedIndex() > sector) {
                 if (poolNodeInfo.getStartedIndex() == poolNodeInfo.getEndedIndex()) {
@@ -162,13 +181,14 @@ public class Cabinet {
                     disk.changeDiskWithOtherSector(poolNodeInfo.getStartedIndex(), sector);
                     // swap on sector from currFile to diffFile
                     diffFile.getListOfSector().add(new PoolNodeInfo(poolNodeInfo.getStartedIndex(), poolNodeInfo.getStartedIndex()));
+                    changeToFirstDisk(poolNodeInfo.getStartedIndex(), diffFile);
                     currFile.getListOfSector().remove(poolNodeInfo);
                 } else {
                     // swap on disk
                     disk.changeDiskWithOtherSector(poolNodeInfo.getStartedIndex(), sector);
-
                     diffFile.getListOfSector().add(new PoolNodeInfo(poolNodeInfo.getStartedIndex(), poolNodeInfo.getStartedIndex()));
                     // swap on sector from currFile to diffFile
+                    changeToFirstDisk(poolNodeInfo.getStartedIndex(), diffFile);
                     poolNodeInfo.setStartedIndex(poolNodeInfo.getStartedIndex() + 1);
                 }
                 break;
@@ -176,6 +196,34 @@ public class Cabinet {
         }
         files.refreshFiles();
         pool.refreshPool();
+    }
+
+    private boolean isFirstSector(int sector, FilesNodeInfo file) {
+        if(sector == file.getListOfSector().get(0).getStartedIndex()) {
+            return true;
+        }
+        return false;
+    }
+    
+    private int getNearSector(int sector, FilesNodeInfo file) {
+        for (int i = sector - 1; i >= 0; i--) {
+            for (PoolNodeInfo poolNodeInfo : file.getListOfSector()) {
+                if(i >= poolNodeInfo.getStartedIndex() && i <= poolNodeInfo.getEndedIndex()) {
+                    return i;
+                }
+            }
+        }
+        return -1;
+    }
+
+    private void changeToFirstDisk(int sector, FilesNodeInfo file) {
+        boolean flag = isFirstSector(sector, file);
+        while(!flag) {
+            int x = getNearSector(sector, file);
+            disk.changeDiskWithOtherSector(sector, x);
+            sector = x;
+            flag = isFirstSector(sector, file);
+        }
     }
 
     private void swapSectorOfFileToEmptySector(FilesNodeInfo currFile, int sector) {
