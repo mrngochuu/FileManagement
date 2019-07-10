@@ -27,7 +27,7 @@ public class Cabinet {
         FilesNodeInfo currFile;
         
         // check if the pool has no sector
-        if (pool.getNumberOfSectorOfFirstPoolNode() == 0) {
+        if (pool.getTotalEmptySector() == 0) {
             System.out.println("There is no more sector to store.");
             return;
         }
@@ -46,7 +46,7 @@ public class Cabinet {
         currFile = new FilesNodeInfo(name, characters);
         
         //Check if the pool has enough sectors to save the file
-        if(currFile.getNumberOfSector() > pool.getNumberOfSectorOfFirstPoolNode()) {
+        if(currFile.getNumberOfSector() > pool.getTotalEmptySector()) {
             System.out.println("The pool has not enough sectors to save file");
             return;
         }
@@ -65,7 +65,8 @@ public class Cabinet {
             System.out.println("There is no file to delete");
             return;
         }
-
+        
+        showFiles();
         String name;
         name = MyToys.getString("Input file name to delete: ", "File name is required.");
         int pos = getIndexOfFile(name);

@@ -24,7 +24,7 @@ public class PoolNodeInfo implements Comparable<PoolNodeInfo>{
     public int getStartedIndex() {
         return startedIndex;
     }
-
+    
     public void setStartedIndex(int startedIndex) {
         this.startedIndex = startedIndex;
     }

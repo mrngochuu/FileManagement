@@ -27,7 +27,14 @@ public class Pool {
     public void setPool(LinkedList<PoolNodeInfo> pool) {
         this.pool = pool;
     }
-
+    
+    public int getTotalEmptySector() {
+        int total = 0;
+        for (PoolNodeInfo poolNodeInfo : pool) {
+            total += poolNodeInfo.getNumberOfSector();
+        }
+        return total;
+    }
     public int getNumberOfSectorOfFirstPoolNode() {
         return pool.get(0).getNumberOfSector();
     }
