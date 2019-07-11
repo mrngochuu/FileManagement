@@ -174,7 +174,6 @@ public class Cabinet {
         } else {
             diffFile.getListOfSector().get(0).setStartedIndex(sector + 1);
         }
-        int sectorToChange = -1;
         for (PoolNodeInfo poolNodeInfo : currFile.getListOfSector()) {
             if (poolNodeInfo.getStartedIndex() > sector) {
                 if (poolNodeInfo.getStartedIndex() == poolNodeInfo.getEndedIndex()) {
@@ -218,12 +217,12 @@ public class Cabinet {
     }
 
     private void changeToFirstDisk(int sector, FilesNodeInfo file) {
+        file.refreshPoolOfFile();
         boolean flag = isFirstSector(sector, file);
         while(!flag) {
             int x = getNearSector(sector, file);
             disk.changeDiskWithOtherSector(sector, x);
-            sector = x;
-            flag = isFirstSector(sector, file);
+            flag = isFirstSector(x, file);
         }
     }
 
@@ -279,15 +278,5 @@ public class Cabinet {
             }
         }
         return -1;
-    }
-
-    private int getTotalUsedSector() {
-        int total = 0;
-        for (FilesNodeInfo file : files.getFiles()) {
-            for (PoolNodeInfo poolNodeInfo : file.getListOfSector()) {
-                total += (poolNodeInfo.getEndedIndex() - poolNodeInfo.getStartedIndex() + 1);
-            }
-        }
-        return total;
     }
 }
